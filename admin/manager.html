@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rolva Finance – Loan Manager</title>
+<style>
+:root{--bg:#f4f5f2;--card:#fff;--tx:#161a17;--mu:#697068;--bd:#dfe3dc;--ac:#0d5c43;--on:#fff;--rd:#b3261e;--am:#9a6700;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1311;--card:#181d1a;--tx:#e9ede8;--mu:#97a095;--bd:#2a312c;--ac:#3dbb8d;--on:#06150f;--rd:#f07b72;--am:#e3b04b}}
+:root[data-theme="dark"]{--bg:#0f1311;--card:#181d1a;--tx:#e9ede8;--mu:#97a095;--bd:#2a312c;--ac:#3dbb8d;--on:#06150f;--rd:#f07b72;--am:#e3b04b}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 Georgia,"Times New Roman",serif}
+.w{max-width:880px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:26px;margin:0 0 2px;letter-spacing:-.01em}h2{font-size:17px;margin:26px 0 10px}
+.sub{color:var(--mu);margin:0 0 18px;font-family:system-ui,sans-serif;font-size:13px}
+.ui,button,input,select{font-family:system-ui,sans-serif}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.st{background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:12px}
+.st b{display:block;font-size:20px}.st span{color:var(--mu);font-family:system-ui,sans-serif;font-size:12px}
+form{background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+label{font:12px system-ui,sans-serif;color:var(--mu);display:flex;flex-direction:column;gap:3px}
+input,select{padding:8px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx);font-size:14px;width:100%}
+button{padding:8px 14px;border:0;border-radius:6px;background:var(--ac);color:var(--on);font-size:14px;cursor:pointer}
+button.g{background:transparent;color:var(--mu);border:1px solid var(--bd)}
+button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+.tabs{display:flex;gap:6px;margin:0 0 10px;flex-wrap:wrap}.tabs button.on{background:var(--ac);color:var(--on)}.tabs button{background:transparent;color:var(--tx);border:1px solid var(--bd)}
+.ln{background:var(--card);border:1px solid var(--bd);border-left:4px solid var(--ac);border-radius:8px;padding:12px;margin-bottom:10px}
+.ln.Overdue{border-left-color:var(--rd)}.ln.Paid{border-left-color:var(--mu);opacity:.8}
+.hd{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.tag{font:12px system-ui,sans-serif;color:var(--mu)}.Overdue .s{color:var(--rd)}.Active .s{color:var(--am)}
+.nums{display:flex;gap:18px;flex-wrap:wrap;margin:8px 0;font-family:system-ui,sans-serif;font-size:13px}
+.nums b{display:block;font-size:15px}
+.ac{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.ac input{width:110px}
+a.wa{font:13px system-ui,sans-serif;color:var(--ac)}
+.em{color:var(--mu);padding:18px;text-align:center;font-family:system-ui,sans-serif}
+.bt{flex-direction:row;padding:6px 10px;border:1px solid var(--bd);border-radius:6px;font-size:13px;cursor:pointer;position:relative}.bt:focus-within{outline:2px solid var(--ac);outline-offset:2px}
+[hidden]{display:none!important}
+.sc{border-collapse:collapse;width:100%;font:12px system-ui,sans-serif}.sc th{text-align:left;font-weight:600;color:var(--mu);padding:3px 6px}.ac select{width:auto}.sc td{padding:3px 6px;border-bottom:1px solid var(--bd)}
+.c{flex-direction:row;align-items:center;gap:6px}.c input{width:auto}.ac button{padding:6px 10px;font-size:13px}#msg{min-height:18px;margin-bottom:8px}
+.note{font:12px system-ui,sans-serif;color:var(--mu);margin-top:20px}
+</style><script src="../config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="claude-shim.js"></script>
+<meta name="robots" content="noindex">
+</head><body><div class="w">
+<h1>Rolva Finance Technologies</h1>
+<p class="sub">Loan book · saved online · <span id="rl"></span></p>
+<div class="stats" id="stats"></div>
+<div id="duew"><h2>Due this week</h2><div id="dul"></div></div>
+<div id="qw"><h2>Reminders to send</h2><div id="ql"></div></div>
+<div id="enw"><h2>Client enquiry</h2><div class="ac"><input id="enq" placeholder="Phone, loan ref or name" style="width:200px"><select id="ent"><option>Balance</option><option>Next payment</option><option>Last payments</option><option>Menu</option><option>Settlement quote</option><option>Statement link</option></select><input id="sdt" type="date" title="Settlement date" style="width:150px"><button class="g" id="engo">Prepare reply</button></div></div>
+<div id="csw" hidden><h2>Message to client</h2><textarea id="cst" readonly rows="5" style="width:100%;padding:8px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx);font-size:13px"></textarea><div class="ac" style="margin-top:6px"><a class="wa" id="csa" href="#" target="_blank" rel="noopener">Open WhatsApp</a><button class="g" id="csc">Copy message</button><button class="g" id="csx">Close</button></div></div>
+<div id="apw"><h2>Applications</h2><div class="ac" style="margin-bottom:8px"><input id="apc" placeholder="Paste application code" style="width:230px"><button class="g" id="apadd">Add from code</button></div><div class="ac" style="margin-bottom:10px"><input id="apn" placeholder="Name" style="width:140px"><input id="apt" placeholder="Phone" inputmode="tel" style="width:120px"><input id="apm" placeholder="Amount (R)" type="number" min="1" style="width:110px"><button class="g" id="apq">Quick add</button></div><div id="apl"></div></div>
+<h2 id="hnew">New loan</h2>
+<form id="f">
+<label>Client name<input name="name" required></label>
+<label>Phone (e.g. 082 123 4567)<input name="phone" inputmode="tel" required></label>
+<label>ID number<input name="idno" inputmode="numeric"></label>
+<label>Principal (R)<input name="principal" type="number" min="1" step="0.01" required></label>
+<label>Interest (% of principal)<input name="rate" type="number" min="0" step="0.01" required></label>
+<label>Term (days, single payment)<input name="days" type="number" min="1" value="30" required></label>
+<label>Interest method<select name="meth"><option value="">Flat</option><option value="r">Reducing balance (instalments; rate is % per month)</option></select></label>
+<label>Repayment<select name="mode"><option value="">Single payment</option><option value="w">Weekly instalments</option><option value="f">Fortnightly instalments</option><option value="m">Monthly instalments</option></select></label>
+<label>Instalments (if not single)<input name="n" type="number" min="2" value="4"></label>
+<label>Late fee (R per missed payment)<input name="fee" type="number" min="0" step="0.01" value="0"></label>
+<label>Initiation fee (R)<input name="ifee" type="number" min="0" step="0.01" value="0"></label>
+<label>Service fee (R per month)<input name="sfee" type="number" min="0" step="0.01" value="0"></label>
+<label>Start date<input name="start" type="date" required></label>
+<label>Residential address<input name="addr"></label>
+<label>Employer<input name="emp"></label>
+<label>Monthly income (R)<input name="inc" type="number" min="0" step="0.01"></label>
+<label>Next of kin (name, phone)<input name="nok"></label>
+<label class="c"><input type="checkbox" name="k1">ID verified</label>
+<label class="c"><input type="checkbox" name="k2">Proof of address</label>
+<label class="c"><input type="checkbox" name="k3">Proof of income</label>
+<label>&nbsp;<button>Add loan</button></label>
+<label>&nbsp;<button type="button" class="g" id="qt">Preview quote</button></label>
+</form>
+<div class="hd" style="align-items:flex-end"><h2>Loan book</h2><span class="ac"><button class="g" id="csv">Export CSV</button><button class="g" id="stmrun">Statement run</button><button class="g" id="bkup">Backup</button></span></div><div class="tag" id="msg" role="status"></div><button class="g" id="imp" hidden>Import loans saved in this browser</button>
+<div class="tabs" id="tabs"></div>
+<div id="list"></div>
+<div id="bkw"><h2>Import bank statement</h2><div class="ac"><input type="file" id="bkf" accept=".csv,text/csv" style="width:auto"><button id="bkgo" hidden>Import selected</button></div><div class="tag" style="margin:6px 0">Upload a CSV export with a date column and a credit or amount column. Credits are matched by loan reference, name or phone.</div><div id="bkl"></div></div>
+<div id="repw"><h2>Monthly report</h2><div class="ac" style="margin-bottom:10px"><input type="month" id="mon" style="width:150px"><button class="g" id="repdl">Download report</button><button class="g" id="jrn">Download journal (CSV)</button></div><div class="stats" id="repst"></div><div class="ac" style="margin-top:10px"><span class="tag" id="lkt"></span><button class="g" id="lkc" data-x="close">Close month shown</button><button class="g" id="lko" data-x="reopen">Reopen latest closed month</button></div></div>
+<div id="rsw"><h2>Restore from backup</h2><div class="ac"><input type="file" id="rsf" accept=".json,application/json" style="width:auto"><button class="g" id="rsgo" data-x="restore" hidden>Restore</button></div><div class="tag" id="rst" style="margin-top:6px"></div></div>
+<div id="auw"><h2>Audit trail</h2><input id="auf" placeholder="Filter by loan or action" style="margin-bottom:8px"><div id="aul"></div></div>
+<p class="note">MVP: flat interest; sign-in is handled by claude.ai. Confirm rates and fees against NCA / NCR requirements before lending.</p>
+</div>
+<script>
+const K='rolva_loans_v1';let L=[],flt='All',DB=null,AS=null,OLD=[],snap={};const Q={};let P={pay:1,add:1,roll:1,docs:1,del:1,waive:1,exp:1};const OPEN=new Set();let USER=null,UID=null,AU=[],APPS=[],APPID='',LOCK='',BK=[];const VIEWER='https://claude.ai/artifact/LV9VpdJH6UEFNyHsuPDP7Q';
+try{OLD=JSON.parse(localStorage.getItem(K)||'[]')}catch(e){}
+const wr=(id,fn)=>{Q[id]=(Q[id]||Promise.resolve()).then(fn).catch(()=>say('Could not save '+id))};
+const save=()=>{if(!DB){say('Not connected, so changes are not being saved.');return}
+const cur={};L.forEach(l=>{cur[l.id]=JSON.stringify(l)});
+Object.keys(cur).forEach(id=>{if(snap[id]!==cur[id]){audit(id,snap[id]?JSON.parse(snap[id]):null,JSON.parse(cur[id]));snap[id]=cur[id];const o=JSON.parse(cur[id]);wr(id,()=>DB.collection('loans').doc(id).set(o))}});
+Object.keys(snap).forEach(id=>{if(!(id in cur)){audit(id,JSON.parse(snap[id]),null);delete snap[id];wr(id,()=>DB.collection('loans').doc(id).delete())}})};
+const R=n=>'R'+Number(n).toLocaleString('en-ZA',{minimumFractionDigits:2,maximumFractionDigits:2});
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const tot=l=>l.tot??l.principal*(1+l.rate/100),paid=l=>l.pay.reduce((a,p)=>a+p.a,0),bal=l=>Math.max(0,owed(l)+fees(l)-paid(l));
+const dd=l=>{if(l.sch){const s=sched(l);return s[s.length-1].d}const d=new Date(l.start+'T00:00:00');d.setDate(d.getDate()+l.days);return d};
+const td=()=>{const d=new Date();d.setHours(0,0,0,0);return d};
+const fd=d=>d.toLocaleDateString('en-CA');
+const sched=l=>{if(!l.sch)return[{d:dd(l),a:owed(l)}];const n=l.sch.n,out=[];for(let i=1;i<=n;i++){const d=new Date(l.start+'T00:00:00');if(l.sch.s==='m')d.setMonth(d.getMonth()+i);else d.setDate(d.getDate()+i*(l.sch.s==='w'?7:14));out.push({d,a:owed(l)/n})}return out};
+const arrears=l=>Math.max(0,sched(l).filter(x=>x.d<td()).reduce((a,x)=>a+x.a,0)+fees(l)-paid(l));
+const nx=l=>{let c=0;return sched(l).find(x=>(c+=x.a)>paid(l)+.005)};
+const lateD=l=>{if(!l.fee)return[];let c=0;return sched(l).filter(x=>{c+=x.a;if(x.d>=td())return false;const pd=l.pay.filter(p=>p.d<=fd(x.d)).reduce((a,p)=>a+p.a,0);return pd<c-.005}).map(x=>fd(x.d))};
+const fees=l=>(l.fee||0)*lateD(l).length;
+const alloc=l=>{const sc=sched(l),got=sc.map(()=>0);let p=paid(l);comps(l).forEach(c=>{const t=Math.min(p,c.a);p-=t;if(c.k!=='late')got[c.i]+=t});return sc.map((x,i)=>({...x,i:i+1,got:got[i],s:got[i]>=x.a-.005?'Paid':x.d<td()?'Overdue':got[i]>0?'Part-paid':'Upcoming'}))};
+const alloc_old=l=>{let p=Math.max(0,paid(l)-fees(l));return sched(l).map((x,i)=>{const a=Math.min(p,x.a);p-=a;return{...x,i:i+1,got:a,s:a>=x.a-.005?'Paid':x.d<td()?'Overdue':a>0?'Part-paid':'Upcoming'}})};
+const st=l=>bal(l)<.005?'Paid':arrears(l)>.005?'Overdue':'Active';
+const lastC=l=>(l.log||[]).reduce((m,x)=>x.d>m?x.d:m,'');
+const promise=l=>(l.log||[]).filter(x=>x.p&&x.p>=fd(new Date())).map(x=>x.p).sort()[0];
+const needs=l=>{if(st(l)!=='Overdue'||promise(l))return false;const c=lastC(l);return !c||(td()-new Date(c+'T00:00:00'))/864e5>=7};
+const amort=l=>{if(!(l.sch&&l.sch.r!=null))return[];let b=l.principal;const n=l.sch.n,a=tot(l)/n;return sched(l).map((x,i)=>{const last=i===n-1,it=last?0:b*l.sch.r,pr=last?b:a-it,o={int:last?a-pr:it,pr,bal:b-pr};b-=pr;return o})};
+const comps=l=>{const out=[],fc=(l.roll||[]).reduce((a,r)=>a+(r.fee||0),0),late=l.fee?lateD(l):[],sc=sched(l);
+if(l.sch){const am=amort(l),n=l.sch.n,a=tot(l)/n;sc.forEach((x,i)=>{const it=am.length?am[i].int:(tot(l)-l.principal)/n;out.push({t:'int',a:it,i},{t:'fee',a:(l.fi||0)/n,i,k:'ini'},{t:'fee',a:(l.fs||0)/n,i,k:'svc',ps:i?sc[i-1].d:new Date(l.start+'T00:00:00')},...(late.includes(fd(x.d))?[{t:'fee',a:l.fee,i,k:'late'}]:[]),{t:'pr',a:a-it,i})})}
+else{out.push({t:'int',a:tot(l)-l.principal-fc,i:0});if(fc>0)out.push({t:'fee',a:fc,i:0,k:'cap'});if(l.fi)out.push({t:'fee',a:l.fi,i:0,k:'ini'});if(l.fs)out.push({t:'fee',a:l.fs,i:0,k:'svc',ps:new Date((l.s0||l.start)+'T00:00:00')});late.forEach(()=>out.push({t:'fee',a:l.fee,i:0,k:'late'}));out.push({t:'pr',a:l.principal,i:0})}
+return out.filter(c=>c.a>.0001)};
+const comps_old=l=>{const out=[],f=fees(l),fc=(l.roll||[]).reduce((a,r)=>a+(r.fee||0),0);if(f>0)out.push({t:'fee',a:f});
+if(l.sch){const am=amort(l),n=l.sch.n,a=tot(l)/n;sched(l).forEach((x,i)=>{const it=am.length?am[i].int:(tot(l)-l.principal)/n;out.push({t:'int',a:it},{t:'pr',a:a-it})})}
+else{if(fc>0)out.push({t:'fee',a:fc});out.push({t:'int',a:tot(l)-l.principal-fc},{t:'pr',a:l.principal})}
+return out};
+const splitPay=l=>{const cs=comps(l);let ci=0,rem=cs.length?cs[0].a:0;return l.pay.slice().sort((a,b)=>a.d<b.d?-1:a.d>b.d?1:0).map(p=>{let left=p.a;const o={d:p.d,a:p.a,fee:0,int:0,pr:0};while(left>.005&&ci<cs.length){const take=Math.min(left,rem);o[cs[ci].t]+=take;left-=take;rem-=take;if(rem<.005){ci++;rem=ci<cs.length?cs[ci].a:0}}return o})};
+const balAt=(l,D)=>{if((l.s0||l.start)>D)return 0;const red=l.sch&&l.sch.r!=null;let c=l.principal+fixed(l)+(red?tot(l)-l.principal:l.principal*l.rate/100);(l.roll||[]).forEach(r=>{if(r.d<=D)c+=r.add+(r.fee||0)});if(l.fee)lateD(l).forEach(d=>{if(d<=D)c+=l.fee});return Math.max(0,c-l.pay.filter(p=>p.d<=D).reduce((a,p)=>a+p.a,0))};
+const fixed=l=>(l.fi||0)+(l.fs||0);
+const owed=l=>tot(l)+fixed(l);
+const locked=d=>!!LOCK&&String(d).slice(0,7)<=LOCK;
+const frozen=l=>locked(l.s0||l.start)||l.pay.some(p=>locked(p.d))||(l.roll||[]).some(r=>locked(r.d));
+const hs=s=>{let h=5381;for(let i=0;i<s.length;i++)h=(h*33^s.charCodeAt(i))>>>0;return h.toString(36)};
+const wa=l=>{let p=l.phone.replace(/\D/g,'');if(p[0]==='0')p='27'+p.slice(1);
+const m=`Hi ${l.name}, this is a reminder from Rolva Finance Technologies: ${R(bal(l))} on loan ${l.id} is due ${fd(dd(l))}. Thank you.`;
+return `https://wa.me/${p}?text=${encodeURIComponent(m)}`};
+const ord={Overdue:0,Active:1,Paid:2};
+function draw(){
+const out=L.reduce((a,l)=>a+bal(l),0),lent=L.reduce((a,l)=>a+l.principal,0),col=L.reduce((a,l)=>a+paid(l),0),od=L.filter(l=>st(l)==='Overdue').length;
+f.hidden=hnew.hidden=!P.add;csv.hidden=stmrun.hidden=bkup.hidden=!P.exp;repw.hidden=!P.exp;auw.hidden=!P.exp;drawRep();drawApps();drawLock();drawDue();drawQ();enw.hidden=!P.pay;rsw.hidden=!P.waive;bkw.hidden=!P.add;stats.innerHTML=[['Lent',R(lent)],['Collected',R(col)],['Outstanding',R(out)],['Overdue loans',od]].map(([k,v])=>`<div class="st"><b>${v}</b><span>${k}</span></div>`).join('');
+tabs.innerHTML=['All','Overdue','Follow up','Active','Paid'].map(t=>`<button class="${t===flt?'on':''}" data-t="${t}">${t}</button>`).join('');
+const rows=L.filter(l=>flt==='All'||(flt==='Follow up'?needs(l):st(l)===flt)).sort((a,b)=>ord[st(a)]-ord[st(b)]||dd(a)-dd(b));
+list.innerHTML=rows.length?rows.map(l=>{const s=st(l);return `<div class="ln ${s}"><div class="hd"><div><b>${esc(l.name)}</b> <span class="tag">${l.id} · ${kyc(l)?'KYC complete':'KYC incomplete'}</span></div><span class="tag s">${s} · due ${fd(dd(l))}</span></div>
+<div class="nums"><span>Principal<b>${R(l.principal)}</b></span><span>Total due<b>${R(owed(l)+fees(l))}</b></span><span>Paid<b>${R(paid(l))}</b></span><span>Balance<b>${R(bal(l))}</b></span></div>
+${l.sch&&s!=='Paid'?`<div class="tag">${l.sch.n} ${{w:'weekly',f:'fortnightly',m:'monthly'}[l.sch.s]} instalments of ${R(owed(l)/l.sch.n)} · next due ${fd((nx(l)||{d:dd(l)}).d)}${arrears(l)>.005?' · in arrears '+R(arrears(l)):''}</div>`:''}${l.sch?`<details data-o="${l.id}s"${OPEN.has(l.id+'s')?' open':''}><summary class="tag">Schedule</summary><table class="sc"><tr><th>#</th><th>Due</th><th>Instalment</th>${amort(l).length?'<th>Interest</th><th>Principal</th>':''}<th>Paid</th><th>Status</th></tr>${alloc(l).map(x=>`<tr><td>${x.i}</td><td>${fd(x.d)}</td><td>${R(x.a)}</td>${(m=>m?`<td>${R(m.int)}</td><td>${R(m.pr)}</td>`:'')(amort(l)[x.i-1])}<td>${R(x.got)} paid</td><td>${x.s}</td></tr>`).join('')}</table></details>`:''}${fees(l)>0?`<div class="tag">Late fees: ${R(fees(l))} (${lateD(l).length} × ${R(l.fee)}). Payments are applied to interest, then fees, then principal.</div>`:''}${affHtml(l)}${promise(l)&&s!=='Paid'?`<div class="tag">Promise to pay by ${promise(l)}</div>`:''}<details data-o="${l.id}c"${OPEN.has(l.id+'c')?' open':''}><summary class="tag">Collections log (${(l.log||[]).length})${lastC(l)?' · last contact '+lastC(l):''}</summary>${(l.log||[]).slice().reverse().map(x=>`<div class="tag">${x.d} · ${esc(x.t)}${x.p?' · promised '+x.p:''}${x.n?': '+esc(x.n):''}</div>`).join('')}${P.pay?`<div class="ac" style="margin-top:6px"><select id="lt${l.id}"><option>Call</option><option>WhatsApp</option><option>Visit</option><option>Promise to pay</option><option>Note</option></select><input id="ln${l.id}" placeholder="Note" style="width:170px"><input id="lp${l.id}" type="date" title="Promised payment date"><button class="g" data-log="${l.id}">Add entry</button></div>`:''}</details>${(l.docs||[]).length?`<div class="tag">Documents: ${l.docs.map(x=>`<a class="wa" href="/_blob/${x.id}" target="_blank" rel="noopener">${esc(x.name)}</a>`).join(', ')}</div>`:''}<div class="ac">${s!=='Paid'&&P.pay?`<input type="number" min="0.01" step="0.01" placeholder="Amount" id="a${l.id}"><button data-pay="${l.id}">Record payment</button><a class="wa" data-wa="${l.id}" href="${wa(l)}" target="_blank" rel="noopener">WhatsApp reminder</a>${l.sch||!P.roll?'':`<button class="g" data-roll="${l.id}">Rollover</button>`}`:''}${AS&&P.docs?`<label class="g bt">Attach document<input type="file" accept="image/*,.pdf" data-up="${l.id}" style="position:absolute;opacity:0;width:1px;height:1px"></label>`:''}<button class="g" data-agr="${l.id}">Agreement</button><button class="g" data-stm="${l.id}">Statement</button>${s!=='Paid'?`<button class="g" data-se="${l.id}">Settlement</button>`:''}${P.pay?`<button class="g" data-cs="${l.id}">Client link</button>`:''}${fees(l)>0&&P.waive?`<button class="g" data-wv="${l.id}">Waive fees</button>`:''}${P.del?`<button class="g" data-del="${l.id}">Delete</button>`:''}</div>
+${l.pay.length?(t=>`<div class="tag" style="margin-top:6px">Paid so far: principal ${R(t.pr)}, interest ${R(t.int)}${t.fee?', fees '+R(t.fee):''}</div>`)(splitPay(l).reduce((a,o)=>({pr:a.pr+o.pr,int:a.int+o.int,fee:a.fee+o.fee}),{pr:0,int:0,fee:0})):''}${l.pay.length?`<div class="tag" style="margin-top:6px">Payments: ${l.pay.map(p=>`${p.d} ${R(p.a)}`).join(', ')}</div>`:''}${(l.roll||[]).length?`<div class="tag">Rollovers: ${l.roll.map(r=>`${r.d} +${R(r.add)}`).join(', ')}</div>`:''}</div>`}).join(''):'<div class="em">No loans here yet. Add one above.</div>';
+}
+f.elements.start.value=fd(new Date());
+const co='Rolva Finance Technologies';
+const kyc=l=>!!(l.k&&l.k.id&&l.k.adr&&l.k.inc&&l.addr&&l.nok);
+const say=t=>{msg.textContent=t};
+const due0=l=>{const d=new Date((l.s0||l.start)+'T00:00:00');d.setDate(d.getDate()+(l.d0||l.days));return d};
+async function dl(name,data){try{const d=window.claude&&await window.claude.use('downloads');if(!d){say('Downloads are not available in this view.');return}await d.save({filename:name,data});say('Saved '+name)}catch(e){say(e&&e.code==='declined'?'Download cancelled.':'Could not save the file.')}}
+const q=v=>{let s=String(v??'');if(/^[=+\-@]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"'};
+function exportCsv(){const h=['Ref','Name','Phone','ID number','Address','Employer','Monthly income','Next of kin','KYC complete','Principal','Rate %','Start','Due','Total due','Paid','Balance','Status','Rollovers'];
+const r=L.map(l=>[l.id,l.name,l.phone,l.idno,l.addr,l.emp,l.inc,l.nok,kyc(l)?'Yes':'No',l.principal,l.rate,l.start,fd(dd(l)),(owed(l)+fees(l)).toFixed(2),paid(l).toFixed(2),bal(l).toFixed(2),st(l),(l.roll||[]).length]);
+dl('rolva-loans-'+fd(new Date())+'.csv','\ufeff'+[h,...r].map(x=>x.map(q).join(',')).join('\r\n'))}
+function roll(id){const l=L.find(x=>x.id===id),b=bal(l);if(b<.005)return;
+const ib=Math.max(0,b-Math.max(0,fees(l)+fixed(l)-paid(l))),room=2*l.principal-tot(l)-fixed(l),add=Math.min(ib*l.rate/100,room);
+if(add<=0){say('Rollover blocked: interest already equals the principal (in duplum).');return}
+l.tot=tot(l)+fees(l)+add;l.roll=l.roll||[];l.roll.push({d:fd(new Date()),bal:b,add,fee:fees(l),fds:lateD(l)});l.start=fd(new Date());
+save();say(`${l.id} rolled over: ${R(add)} interest added${add<ib*l.rate/100?' (capped at the in duplum limit)':''}. New balance ${R(bal(l))}.`)}
+const page=(t,b)=>`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${t}</title><style>body{font:14px/1.5 Georgia,serif;max-width:720px;margin:40px auto;padding:0 20px;color:#111}h1{font-size:22px}table{border-collapse:collapse;width:100%;margin:12px 0}td,th{border-bottom:1px solid #ccc;padding:6px;text-align:left}.r{text-align:right}.sig{display:flex;gap:40px;margin-top:60px}.sig div{flex:1;border-top:1px solid #111;padding-top:4px}.n{color:#666;font-size:12px}</style></head><body>${b}</body></html>`;
+function doc(id,t){const l=L.find(x=>x.id===id),n=esc(l.name),s0=l.s0||l.start;
+if(t==='stm')return dl(`statement-${id}.html`,page('Statement '+id,stmBody(l)));
+if(t==='agr'){const red=l.sch&&l.sch.r!=null,i=red?tot(l)-l.principal:l.principal*l.rate/100;return dl(`agreement-${id}.html`,page('Loan agreement '+id,`<h1>Loan agreement ${id}</h1>
+<p>Made on ${s0} between <b>${co}</b> ("the Lender") and <b>${n}</b>, ID number ${esc(l.idno||'not provided')}, residing at ${esc(l.addr||'not provided')} ("the Borrower").</p>
+<table><tr><td>Amount advanced</td><td class="r">${R(l.principal)}</td></tr><tr><td>${red?`Total interest (${l.rate}% per month on the reducing balance)`:`Interest at ${l.rate}% of the amount advanced`}</td><td class="r">${R(i)}</td></tr>${l.fi?`<tr><td>Initiation fee</td><td class="r">${R(l.fi)}</td></tr>`:''}${l.fs?`<tr><td>Service fees (${l.sm} months at ${R(l.fs/l.sm)})</td><td class="r">${R(l.fs)}</td></tr>`:''}<tr><td><b>Total repayable</b></td><td class="r"><b>${R(l.principal+i+fixed(l))}</b></td></tr><tr><td>${l.sch?'Final instalment due':'Due date'}</td><td class="r">${fd(l.sch?dd(l):due0(l))}</td></tr></table>${l.sch?`<p>Repayable in ${l.sch.n} ${{w:'weekly',f:'fortnightly',m:'monthly'}[l.sch.s]} instalments:</p><table>${sched(l).map((x,i)=>`<tr><td>Instalment ${i+1}</td><td>${fd(x.d)}</td><td class="r">${R(x.a)}</td>${(m=>m?`<td class="r">interest ${R(m.int)}</td><td class="r">capital ${R(m.pr)}</td>${fixed(l)>0?`<td class="r">fees ${R(x.a-m.int-m.pr)}</td>`:''}`:'')(amort(l)[i])}</tr>`).join('')}</table>`:''}
+<ol><li>The Borrower must repay the total repayable by the due date. Payments reduce the outstanding balance and appear on the Borrower's statement.</li>
+<li>If the balance is unpaid on the due date, the Lender may roll it over for a further ${l.d0||l.days} days. Interest at ${l.rate}% then applies to the whole outstanding balance, including interest already added. Total interest never exceeds the amount advanced.</li>
+<li>The Borrower confirms the details given to the Lender are true and agrees to be contacted about this loan by phone and WhatsApp.</li>
+${l.fee>0?`<li>If a payment is not made by its due date, a late fee of ${R(l.fee)} applies for each missed payment. Payments are applied first to interest, then to fees and charges, then to the principal debt.</li>`:''}<li>The Borrower may settle this agreement early at any time. The settlement amount is the unpaid principal debt plus the unpaid interest, fees and charges payable up to the settlement date.</li><li>The Lender may take lawful steps to recover unpaid amounts.</li></ol>
+<div class="sig"><div>Borrower: ${n}</div><div>For ${co}</div></div>
+<p class="n">Template only. Have a legal practitioner review it, and check National Credit Act requirements (registration, quotation, cost disclosure) before use.</p>`))}
+const e=[[s0,'Loan advanced',l.principal,0],[s0,l.sch&&l.sch.r!=null?`Interest (${l.rate}% per month, reducing balance)`:`Interest (${l.rate}%)`,l.sch&&l.sch.r!=null?tot(l)-l.principal:l.principal*l.rate/100,0],...(l.roll||[]).flatMap(r=>[[r.d,'Rollover interest',r.add,0],...(r.fee?[[r.d,'Late fees capitalised',r.fee,0]]:[])]),...lateD(l).map(d=>[d,'Late fee',l.fee,0]),...splitPay(l).map(o=>[o.d,`Payment received (interest ${R(o.int)}, principal ${R(o.pr)}${o.fee?', late fees '+R(o.fee):''})`,0,o.a])].sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:0);
+let run=0;const rows=e.map(([d,x,db,cr])=>{run+=db-cr;return `<tr><td>${d}</td><td>${x}</td><td class="r">${db?R(db):''}</td><td class="r">${cr?R(cr):''}</td><td class="r">${R(run)}</td></tr>`}).join('');
+dl(`statement-${id}.html`,page('Statement '+id,`<h1>Statement ${id}</h1><p>${co}<br>Client: ${n}<br>Statement date: ${fd(new Date())}<br>Status: ${st(l)}, due ${fd(dd(l))}</p><table><tr><th>Date</th><th>Description</th><th class="r">Charged</th><th class="r">Paid</th><th class="r">Balance</th></tr>${rows}</table><p><b>Balance due: ${R(bal(l))}</b>${arrears(l)>.005?` (in arrears: ${R(arrears(l))})`:''}</p>`))}
+f.onsubmit=e=>{e.preventDefault();const v=Object.fromEntries(new FormData(f));if(locked(v.start)){say('That start date is in a closed month.');return}
+const n=L.reduce((m,l)=>Math.max(m,+l.id.slice(3)),0)+1;
+L.push({id:'RF-'+String(n).padStart(4,'0'),name:v.name.trim(),phone:v.phone,idno:v.idno,addr:v.addr,emp:v.emp,inc:+v.inc||0,nok:v.nok,k:{id:!!v.k1,adr:!!v.k2,inc:!!v.k3},s0:v.start,d0:+v.days,...mk(v),fee:+v.fee||0,principal:+v.principal,rate:+v.rate,days:+v.days,start:v.start,pay:[]});
+if(APPID){const a=APPS.find(x=>x.id===APPID);if(a){a.st='Converted';a.loan='RF-'+String(n).padStart(4,'0');saveApp(a,'Application converted to loan '+a.loan)}APPID=''}save();f.reset();f.elements.start.value=fd(new Date());f.elements.days.value=30;draw()};
+let armed='';const key=b=>Object.entries(b.dataset).join();const arm=(b,t)=>{const k=key(b);if(armed===k){armed='';return true}armed=k;b.textContent=t;return false};
+document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.id==='csv'){exportCsv();return}if(b.id==='repdl'){dlRep();return}if(b.id==='imp'){importOld();return}if(key(b)!==armed)armed='';
+if(b.dataset.t){flt=b.dataset.t}
+else if(b.dataset.pay){const id=b.dataset.pay,a=+document.getElementById('a'+id).value;if(!(a>0))return;L.find(l=>l.id===id).pay.push({d:fd(new Date()),a});save()}
+else if(b.dataset.del){if(frozen(L.find(x=>x.id===b.dataset.del))){say('This loan has activity in a closed month, so it cannot be deleted.');return}if(!arm(b,'Confirm delete'))return;L=L.filter(l=>l.id!==b.dataset.del);save()}
+else if(b.dataset.x==='close'){if(!arm(b,'Confirm close'))return;closeMonth();return}
+else if(b.dataset.x==='reopen'){if(!arm(b,'Confirm reopen'))return;reopenMonth();return}
+else if(b.dataset.ap){setApp(b.dataset.ap,b.dataset.to);return}
+else if(b.dataset.mk){mkLoan(b.dataset.mk);return}
+else if(b.id==='apadd'){addAppCode();return}
+else if(b.id==='apq'){addAppQuick();return}
+else if(b.id==='bkgo'){importBk();return}
+else if(b.id==='jrn'){dlJournal();return}
+else if(b.id==='stmrun'){stmRun();return}
+else if(b.id==='csc'){cst.select();try{navigator.clipboard.writeText(cst.value).then(()=>say('Copied.')).catch(()=>say('Press Ctrl+C to copy.'))}catch(e){say('Press Ctrl+C to copy.')}return}
+else if(b.id==='csx'){csw.hidden=true;return}
+else if(b.id==='engo'){enquiry();return}
+else if(b.id==='qt'){quote();return}
+else if(b.id==='bkup'){dlBackup();return}
+else if(b.dataset.x==='restore'){if(!arm(b,'Confirm restore'))return;doRestore();return}
+else if(b.dataset.cs){clientStm(b.dataset.cs);return}
+else if(b.dataset.se){dlSettle(b.dataset.se);return}
+else if(b.dataset.af){const l=L.find(x=>x.id===b.dataset.af),c=b.closest('details'),g=k=>+c.querySelector('[name='+k+']').value||0,net=g('net');if(!l||!P.add)return;if(!(net>0)){say('Enter the net monthly income.');return}const ex=g('rent')+g('food')+g('transport')+g('debts')+g('other'),disp=net-ex,rp=monthlyRepay(l);l.aff=l.aff||[];l.aff.push({d:fd(new Date()),by:UID||'',net,rent:g('rent'),food:g('food'),transport:g('transport'),debts:g('debts'),other:g('other'),disp,rp,ratio:disp>0?rp/disp:null,ok:c.querySelector('[name=dec]').value==='Affordable',iv:c.querySelector('[name=iv]').checked,cb:c.querySelector('[name=cb]').checked,note:c.querySelector('[name=note]').value.trim().slice(0,300)});OPEN.add(l.id+'a');save()}
+else if(b.dataset.log){const id=b.dataset.log,l=L.find(x=>x.id===id),t=document.getElementById('lt'+id).value,n=document.getElementById('ln'+id).value.trim(),p=document.getElementById('lp'+id).value;l.log=l.log||[];l.log.push({d:fd(new Date()),t,n,...(p?{p}:{})});OPEN.add(id+'c');save()}
+else if(b.dataset.wv){if(lateD(L.find(x=>x.id===b.dataset.wv)).some(d=>locked(d))){say('Fees from a closed month cannot be waived.');return}if(!arm(b,'Confirm waive'))return;L.find(x=>x.id===b.dataset.wv).fee=0;save()}
+else if(b.dataset.roll){if(!arm(b,'Confirm rollover'))return;roll(b.dataset.roll)}
+else if(b.dataset.agr){doc(b.dataset.agr,'agr');return}
+else if(b.dataset.stm){doc(b.dataset.stm,'stm');return}
+else return;draw()});
+draw();
+const mk=v=>({...mk0(v),...fx(v)});
+const fx=v=>{const fi=Math.max(0,+v.ifee||0),sf=Math.max(0,+v.sfee||0);if(!fi&&!sf)return{};const n=Math.max(2,Math.round(+v.n)||4),days=v.mode?n*({w:7,f:14,m:30.4375}[v.mode]):(+v.days||30),sm=Math.max(1,Math.round(days/30.4375)),o={};if(fi)o.fi=Math.round(fi*100)/100;if(sf){o.sm=sm;o.fs=Math.round(sf*sm*100)/100}return o};
+const mk0=v=>{if(!v.mode)return{};const n=Math.max(2,Math.round(+v.n)||4);if(v.meth!=='r')return{sch:{s:v.mode,n}};const r=(+v.rate/100)*(v.mode==='m'?1:v.mode==='f'?12/26:12/52),pm=r>0?(+v.principal)*r/(1-Math.pow(1+r,-n)):(+v.principal)/n;return{sch:{s:v.mode,n,r},tot:Math.round(pm*n*100)/100}};
+function repRows(m){const inM=d=>String(d).slice(0,7)===m;let nl=0,lent=0,intr=0,coll=0,np=0,fee=0,rollI=0,out=0,od=0,arr=0,ci=0,cp=0,cf=0,eo=0,eopen=0,ltd=0,ctd=0;const now=fd(new Date()),D=m===now.slice(0,7)?now:fd(new Date(+m.slice(0,4),+m.slice(5,7),0));
+L.forEach(l=>{if(inM(l.s0||l.start)){nl++;lent+=l.principal;fee+=fixed(l);intr+=l.sch&&l.sch.r!=null?tot(l)-l.principal:l.principal*l.rate/100}
+(l.roll||[]).forEach(r=>{if(inM(r.d)){rollI+=r.add;fee+=r.fee||0}});
+l.pay.forEach(p=>{if(inM(p.d)){coll+=p.a;np++}});splitPay(l).forEach(o=>{if(inM(o.d)){ci+=o.int;cp+=o.pr;cf+=o.fee}});{const b=balAt(l,D);eo+=b;if(b>.005)eopen++;if((l.s0||l.start)<=D)ltd+=l.principal;l.pay.forEach(p=>{if(p.d<=D)ctd+=p.a})}
+lateD(l).forEach(d=>{if(inM(d))fee+=l.fee});
+out+=bal(l);if(st(l)==='Overdue'){od++;arr+=arrears(l)}});
+return[['Loans issued',`${nl} (${R(lent)})`],['Payments received',`${np} (${R(coll)})`],['Collected as principal / interest',`${R(cp)} / ${R(ci)}`],['Collected as fees',R(cf)],['Interest on new loans',R(intr)],['Rollover interest',R(rollI)],['Fees charged',R(fee)],['Outstanding at '+D,R(eo)],['Open loans at '+D,eopen],['Lent to date',R(ltd)],['Collected to date',R(ctd)],['Outstanding today',R(out)],['In arrears today',`${od} loans (${R(arr)})`],['Open loans with no affordability assessment',L.filter(l=>!(l.aff||[]).length&&st(l)!=='Paid').length]]}
+function drawRep(){if(!P.exp)return;if(!mon.value)mon.value=fd(new Date()).slice(0,7);repst.innerHTML=repRows(mon.value).map(([k,v])=>`<div class="st"><b>${v}</b><span>${k}</span></div>`).join('')}
+function dlRep(){const m=mon.value||fd(new Date()).slice(0,7),pay=[];L.forEach(l=>l.pay.forEach(p=>{if(p.d.slice(0,7)===m)pay.push([p.d,l.id,l.name,p.a])}));pay.sort();
+dl(`report-${m}.html`,page('Report '+m,`<h1>${co}: ${m}</h1><table>${repRows(m).map(([k,v])=>`<tr><td>${k}</td><td class="r">${v}</td></tr>`).join('')}</table><h2>Payments received</h2><table>${pay.map(x=>`<tr><td>${x[0]}</td><td>${x[1]}</td><td>${esc(x[2])}</td><td class="r">${R(x[3])}</td></tr>`).join('')||'<tr><td>None</td></tr>'}</table><p class="n">Interest figures are amounts charged, not cash received. Outstanding and arrears are as at the day the report was run.</p>`))}
+document.addEventListener('click',e=>{const a=e.target.closest('a[data-wa]');if(!a||!P.pay)return;const l=L.find(x=>x.id===a.dataset.wa);if(!l)return;l.log=l.log||[];l.log.push({d:fd(new Date()),t:'WhatsApp',n:'Reminder link opened'});save()});
+document.addEventListener('toggle',e=>{const o=e.target.dataset&&e.target.dataset.o;if(!o)return;e.target.open?OPEN.add(o):OPEN.delete(o)},true);
+mon.onchange=drawRep;
+function diffEv(o,n){if(!o)return['Created loan for '+n.name+', '+R(n.principal)];if(!n)return['Deleted loan for '+o.name+' (balance '+R(bal(o))+')'];
+const ev=[],g=(x,k)=>x[k]||[];
+g(n,'pay').slice(g(o,'pay').length).forEach(p=>ev.push('Payment '+R(p.a)+(p.r?' imported from bank statement ('+p.d+')':' recorded')));
+g(n,'roll').slice(g(o,'roll').length).forEach(r=>ev.push('Rolled over, '+R(r.add)+' interest added'));
+g(n,'docs').slice(g(o,'docs').length).forEach(d=>ev.push('Attached document '+d.name));
+g(n,'log').slice(g(o,'log').length).forEach(x=>ev.push('Collections: '+x.t));
+g(n,'aff').slice(g(o,'aff').length).forEach(x=>ev.push('Affordability assessment recorded: '+(x.ok?'affordable':'not affordable')));
+if(o.fee>0&&!n.fee)ev.push('Late fees waived');
+if(!ev.length)ev.push('Loan edited');return ev}
+function audit(id,o,n){if(!DB)return;const t=new Date().toISOString();diffEv(o,n).forEach(e=>{DB.collection('audit').add({t,by:UID||'',ref:id,e}).catch(()=>{})})}
+async function drawAu(){if(!P.exp)return;const fl=(auf.value||'').toLowerCase(),rows=AU.filter(x=>!fl||(x.ref+' '+x.e).toLowerCase().includes(fl)).slice(0,100);
+let nm={};try{if(USER)nm=await USER.profiles([...new Set(rows.map(x=>x.by).filter(Boolean))])}catch(e){}
+aul.innerHTML=rows.length?rows.map(x=>`<div class="tag">${esc(new Date(x.t).toLocaleString('en-ZA'))} · ${esc((nm[x.by]&&nm[x.by].name)||'Someone')} · ${esc(x.ref)}: ${esc(x.e)}</div>`).join(''):'<div class="em">No changes recorded yet.</div>'}
+auf.oninput=drawAu;
+const csvRows=t=>{const d=[',',';','\t'].map(c=>[c,(t.split('\n')[0]||'').split(c).length]).sort((a,b)=>b[1]-a[1])[0][0],rows=[];let r=[],c='',inq=false;for(let i=0;i<t.length;i++){const ch=t[i];if(inq){if(ch==='"'){if(t[i+1]==='"'){c+='"';i++}else inq=false}else c+=ch}else if(ch==='"')inq=true;else if(ch===d){r.push(c);c=''}else if(ch==='\n'||ch==='\r'){if(ch==='\r'&&t[i+1]==='\n')i++;r.push(c);c='';if(r.some(x=>x.trim()))rows.push(r);r=[]}else c+=ch}r.push(c);if(r.some(x=>x.trim()))rows.push(r);return rows};
+const nd=s=>{s=String(s||'').trim();let m;if(m=s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/))return m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');if(m=s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/))return m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');if(m=s.match(/^(\d{4})(\d{2})(\d{2})$/))return m[1]+'-'+m[2]+'-'+m[3];return''};
+const na=s=>{s=String(s||'').replace(/[^\d,.\-]/g,'');if(!s)return NaN;if(s.includes(',')&&s.includes('.'))s=s.replace(/,/g,'');else if(/,\d{1,2}$/.test(s))s=s.replace(',','.');else s=s.replace(/,/g,'');return parseFloat(s)};
+const matchLoan=txt=>{const t=txt.toLowerCase(),m=t.match(/rf-?(\d{4})/);if(m){const l=L.find(x=>x.id==='RF-'+m[1]);if(l)return l.id}
+const op=L.filter(l=>bal(l)>.005),w=l=>l.name.toLowerCase().split(/\s+/).filter(x=>x.length>1);
+let c=op.filter(l=>w(l).length&&w(l).every(x=>t.includes(x)));if(c.length===1)return c[0].id;
+c=op.filter(l=>{const s=w(l).pop();return s&&s.length>=4&&t.includes(s)});if(c.length===1)return c[0].id;
+const dg=t.replace(/\D/g,'');c=op.filter(l=>{const p=l.phone.replace(/\D/g,'').slice(-9);return p.length===9&&dg.includes(p)});return c.length===1?c[0].id:''};
+function drawBk(){bkgo.hidden=!BK.some(r=>r.ok);bkl.innerHTML=BK.length?`<table class="sc"><tr><th></th><th>Date</th><th>Description</th><th>Amount</th><th>Loan</th></tr>${BK.map((r,i)=>`<tr><td><input type="checkbox" data-bk="${i}" ${r.ok?'checked':''} ${r.dup||r.lock||!r.loan?'disabled':''} style="width:auto"></td><td>${r.d}</td><td>${esc(r.desc.slice(0,50))}</td><td>${R(r.a)}</td><td>${r.dup?'Already imported':r.lock?'Closed month':`<select data-bs="${i}"><option value="">Skip</option>${L.filter(l=>bal(l)>.005||l.id===r.loan).map(l=>`<option value="${l.id}"${l.id===r.loan?' selected':''}>${l.id} ${esc(l.name)} (${R(bal(l))})</option>`).join('')}</select>`}</td></tr>`).join('')}</table>`:''}
+bkf.onchange=async()=>{if(!P.add)return;const f0=bkf.files[0];if(!f0)return;const rows=csvRows((await f0.text()).replace(/^\uFEFF/,''));if(rows.length<2){say('No rows found in that file.');return}
+const hasH=!nd(rows[0][0]),h=rows[0].map(x=>x.toLowerCase()),body=hasH?rows.slice(1):rows;
+let di=hasH?h.findIndex(x=>/date/.test(x)):0,ai=hasH?h.findIndex(x=>/credit|deposit|money in/.test(x)):-1;if(di<0)di=0;if(ai<0&&hasH)ai=h.findIndex(x=>/amount|value/.test(x));
+if(ai<0){const isN=x=>/^[R\s]*-?[\d\s,.]+$/.test(String(x||'').trim());ai=(body[0]||[]).findIndex((x,i)=>i!==di&&isN(x))}
+if(ai<0){say('Could not find an amount column.');return}
+const seen={};BK=[];body.forEach(r=>{const d=nd(r[di]),a=na(r[ai]);if(!d||!(a>0))return;const desc=r.filter((x,i)=>i!==di&&i!==ai).join(' ').replace(/\s+/g,' ').trim(),base=d+'|'+a.toFixed(2)+'|'+hs(desc);seen[base]=(seen[base]||0)+1;const ref=base+'|'+seen[base],loan=matchLoan(desc),dup=L.some(l=>l.pay.some(p=>p.r===ref)),lock=locked(d);BK.push({d,desc,a,ref,loan,dup,lock,ok:!!loan&&!dup&&!lock})});
+say(BK.length?BK.length+' credits found.':'No credits found. Check the file has date and amount columns.');drawBk()};
+bkl.onchange=e=>{const t=e.target,i=t.dataset.bk!==undefined?t.dataset.bk:t.dataset.bs;if(i===undefined)return;const r=BK[+i];if(t.dataset.bs!==undefined){r.loan=t.value;r.ok=!!r.loan}else r.ok=t.checked;drawBk()};
+function importBk(){if(!P.add)return;let n=0,sum=0;BK.forEach(r=>{if(!r.ok||!r.loan||r.dup||r.lock)return;const l=L.find(x=>x.id===r.loan);if(!l)return;l.pay.push({d:r.d,a:r.a,r:r.ref});n++;sum+=r.a});BK=[];bkf.value='';drawBk();if(n){save();say(`Imported ${n} payments (${R(sum)}).`);draw()}else say('Nothing selected to import.')}
+function drawLock(){lkt.textContent=LOCK?'Books closed through '+LOCK:'No months closed';lkc.textContent='Close month shown';lko.textContent='Reopen latest closed month';lkc.hidden=lko.hidden=!P.waive}
+function setLock(m,ev){DB.doc('lock/state').set({through:m}).catch(()=>say('Could not change the lock.'));DB.collection('audit').add({t:new Date().toISOString(),by:UID||'',ref:'BOOKS',e:ev}).catch(()=>{});LOCK=m;draw()}
+function closeMonth(){const m=mon.value,cur=fd(new Date()).slice(0,7);if(!P.waive||!DB)return;if(!m||m>=cur){say('Only past months can be closed.');return}if(LOCK&&m<=LOCK){say(m+' is already closed.');return}setLock(m,'Closed books through '+m)}
+function reopenMonth(){if(!P.waive||!DB||!LOCK)return;const[y,mo]=LOCK.split('-').map(Number),p=fd(new Date(y,mo-2,1)).slice(0,7);setLock(p,'Reopened '+LOCK+'; books now closed through '+p)}
+function saveApp(a,ev){if(!DB){say('Not connected, so changes are not being saved.');return}DB.collection('apps').doc(a.id).set(a).catch(()=>say('Could not save the application.'));DB.collection('audit').add({t:new Date().toISOString(),by:UID||'',ref:a.id,e:ev}).catch(()=>{});drawApps()}
+function newApp(o){const n=APPS.reduce((m,a)=>Math.max(m,+a.id.slice(3)),0)+1,s=(v,k=100)=>String(v||'').slice(0,k),a={id:'AP-'+String(n).padStart(4,'0'),name:s(o.name),phone:s(o.phone,20),idno:s(o.idno,20),addr:s(o.addr,200),emp:s(o.emp),inc:+o.inc||0,nok:s(o.nok),amt:+o.amt||0,days:Math.max(1,Math.round(+o.days)||30),purpose:s(o.purpose),st:'Pending',t:fd(new Date())};if(!a.name||!(a.amt>0)){say('An application needs a name and an amount.');return false}APPS.push(a);saveApp(a,'Application received');say('Added '+a.id);return true}
+function addAppCode(){if(!P.pay)return;const c=apc.value.split('RFAPP1:').pop().replace(/\s/g,'');try{if(newApp(JSON.parse(decodeURIComponent(escape(atob(c))))))apc.value=''}catch(e){say('That code could not be read.')}}
+function addAppQuick(){if(!P.pay)return;if(newApp({name:apn.value,phone:apt.value,amt:apm.value,days:30}))apn.value=apt.value=apm.value=''}
+function setApp(id,to){if(!P.add)return;const a=APPS.find(x=>x.id===id);if(!a)return;a.st=to;saveApp(a,'Application '+to.toLowerCase())}
+function mkLoan(id){const a=APPS.find(x=>x.id===id);if(!a||!P.add)return;const E=f.elements;APPID=id;E['name'].value=a.name;E['phone'].value=a.phone;E['idno'].value=a.idno||'';E['addr'].value=a.addr||'';E['emp'].value=a.emp||'';E['inc'].value=a.inc||'';E['nok'].value=a.nok||'';E['principal'].value=a.amt;E['days'].value=a.days||30;say('Form filled from '+id+'. Set the rate and terms, then add the loan.');f.scrollIntoView({behavior:'smooth'})}
+function drawApps(){apw.hidden=!P.pay;apl.innerHTML=APPS.length?APPS.slice().sort((a,b)=>a.id<b.id?1:-1).map(a=>`<div class="ln ${a.st==='Declined'||a.st==='Converted'?'Paid':'Active'}"><div class="hd"><div><b>${esc(a.name)}</b> <span class="tag">${a.id} · ${esc(a.t)}</span></div><span class="tag">${a.st}${a.loan?' → '+esc(a.loan):''}</span></div><div class="nums"><span>Requested<b>${R(a.amt)}</b></span><span>Term<b>${a.days} days</b></span>${a.inc?`<span>Monthly income<b>${R(a.inc)}</b></span><span>Request vs income<b>${Math.round(a.amt/a.inc*100)}%</b></span>`:''}</div><div class="tag">${esc(a.phone)} · ID ${esc(a.idno||'n/a')} · ${esc(a.emp||'employer n/a')}${a.purpose?' · '+esc(a.purpose):''}</div><div class="ac">${P.add&&a.st==='Pending'?`<button data-ap="${a.id}" data-to="Approved">Approve</button><button class="g" data-ap="${a.id}" data-to="Declined">Decline</button>`:''}${P.add&&(a.st==='Approved'||a.st==='Pending')?`<button class="g" data-mk="${a.id}">Create loan</button>`:''}</div></div>`).join(''):'<div class="em">No applications yet.</div>'}
+function lastWA(l){return(l.log||[]).filter(x=>x.t==='WhatsApp').reduce((m,x)=>x.d>m?x.d:m,'')}
+function ago(d){return d?Math.round((td()-new Date(d+'T00:00:00'))/864e5):999}
+function waq(l,m){let p=l.phone.replace(/\D/g,'');if(p[0]==='0')p='27'+p.slice(1);return'https://wa.me/'+p+'?text='+encodeURIComponent(m)}
+function drawDue(){const t0=td(),t7=new Date(t0);t7.setDate(t7.getDate()+7);const rows=[];
+L.forEach(l=>{if(st(l)==='Paid')return;alloc(l).forEach(x=>{const rem=x.a-x.got;if(rem>.005&&x.d>=t0&&x.d<=t7)rows.push({d:x.d,l,rem})})});
+rows.sort((a,b)=>a.d-b.d);const sum=rows.reduce((a,r)=>a+r.rem,0);
+dul.innerHTML=rows.length?`<div class="tag" style="margin-bottom:6px">${rows.length} payments, ${R(sum)} expected</div>`+rows.map(r=>`<div class="tag">${fd(r.d)}${fd(r.d)===fd(t0)?' (today)':''} · ${esc(r.l.name)} · ${r.l.id} · ${R(r.rem)}</div>`).join(''):'<div class="em">Nothing due in the next 7 days.</div>'}
+function drawQ(){qw.hidden=!P.pay;if(!P.pay)return;const t0=td(),items=[];
+L.forEach(l=>{if(st(l)==='Paid'||l.phone.replace(/\D/g,'').length<9)return;const w=ago(lastWA(l)),a=arrears(l);
+if(a>.005){if(w>=3)items.push({l,k:'Overdue',m:'Hi '+l.name+', your payment to Rolva Finance Technologies is overdue. Amount outstanding: '+R(a)+' (loan '+l.id+'). Please pay as soon as you can or contact us. Thank you.'});return}
+const n=alloc(l).find(x=>x.a-x.got>.005);if(!n)return;const dy=Math.round((n.d-t0)/864e5);
+if(dy>=0&&dy<=2&&w>=2)items.push({l,k:dy===0?'Due today':'Due soon',m:'Hi '+l.name+', a reminder from Rolva Finance Technologies: '+R(n.a-n.got)+' is due on '+fd(n.d)+' (loan '+l.id+'). Thank you.'})});
+items.sort((a,b)=>(a.k==='Overdue'?0:1)-(b.k==='Overdue'?0:1));
+ql.innerHTML=items.length?items.map(i=>`<div class="ln ${i.k==='Overdue'?'Overdue':'Active'}"><div class="hd"><div><b>${esc(i.l.name)}</b> <span class="tag">${i.l.id} · ${i.k}</span></div><a class="wa" data-wa="${i.l.id}" href="${waq(i.l,i.m)}" target="_blank" rel="noopener">Open WhatsApp</a></div></div>`).join(''):'<div class="em">No reminders to send right now.</div>'}
+function dlJournal(){const m=mon.value||fd(new Date()).slice(0,7),inM=d=>String(d).slice(0,7)===m,a=[];
+const je=(d,l,desc,dr,cr,amt)=>{if(!inM(d)||!(amt>.005))return;a.push([d,l.id,l.name,desc,dr,amt.toFixed(2),''],[d,l.id,l.name,desc,cr,'',amt.toFixed(2)])};
+L.forEach(l=>{const s0=l.s0||l.start,red=l.sch&&l.sch.r!=null;
+je(s0,l,'Loan disbursed','Loans receivable','Bank',l.principal);
+je(s0,l,'Interest charged','Loans receivable','Interest income',red?tot(l)-l.principal:l.principal*l.rate/100);
+je(s0,l,'Initiation fee','Loans receivable','Fee income',l.fi||0);je(s0,l,'Service fees','Loans receivable','Fee income',l.fs||0);
+(l.roll||[]).forEach(r=>{je(r.d,l,'Rollover interest','Loans receivable','Interest income',r.add);if(r.fee>0){const ds=r.fds&&r.fds.length?r.fds:[r.d];ds.forEach(d=>je(d,l,'Late fee','Loans receivable','Fee income',r.fee/ds.length))}});
+lateD(l).forEach(d=>je(d,l,'Late fee','Loans receivable','Fee income',l.fee));
+l.pay.forEach(p=>je(p.d,l,'Payment received'+(p.r?' (bank import)':''),'Bank','Loans receivable',p.a))});
+a.sort((x,y)=>x[0]<y[0]?-1:x[0]>y[0]?1:0);
+dl('journal-'+m+'.csv','\ufeff'+[['Date','Ref','Client','Description','Account','Debit','Credit'],...a].map(x=>x.map(q).join(',')).join('\r\n'))}
+function stmData(l){const s0=l.s0||l.start,red=l.sch&&l.sch.r!=null;
+const e=[[s0,'Loan advanced',l.principal,0],[s0,red?'Interest ('+l.rate+'% per month, reducing balance)':'Interest ('+l.rate+'%)',red?tot(l)-l.principal:l.principal*l.rate/100,0],...(l.fi?[[s0,'Initiation fee',l.fi,0]]:[]),...(l.fs?[[s0,'Service fees ('+l.sm+' months)',l.fs,0]]:[]),...(l.roll||[]).flatMap(r=>[[r.d,'Rollover interest',r.add,0],...(r.fee?[[r.d,'Late fees capitalised',r.fee,0]]:[])]),...lateD(l).map(d=>[d,'Late fee',l.fee,0]),...splitPay(l).map(o=>[o.d,'Payment received (interest '+R(o.int)+', principal '+R(o.pr)+(o.fee?', fees '+R(o.fee):'')+')',0,o.a])].sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:0);
+let run=0;const n=alloc(l).find(x=>x.a-x.got>.005);
+return{co:co,id:l.id,name:l.name,on:fd(new Date()),st:st(l),due:fd(dd(l)),rows:e.map(([d,x,db,cr])=>{run+=db-cr;return[d,x,db,cr,run]}),bal:bal(l),arr:arrears(l),nx:n?[fd(n.d),n.a-n.got]:null,sch:l.sch?alloc(l).map(x=>[fd(x.d),x.a,x.s]):[]}}
+function stmBody(l){const s=stmData(l);return '<h1>Statement '+s.id+'</h1><p>'+co+'<br>Client: '+esc(s.name)+'<br>Statement date: '+s.on+'<br>Status: '+s.st+', due '+s.due+'</p><table><tr><th>Date</th><th>Description</th><th class="r">Charged</th><th class="r">Paid</th><th class="r">Balance</th></tr>'+s.rows.map(r=>'<tr><td>'+r[0]+'</td><td>'+esc(r[1])+'</td><td class="r">'+(r[2]?R(r[2]):'')+'</td><td class="r">'+(r[3]?R(r[3]):'')+'</td><td class="r">'+R(r[4])+'</td></tr>').join('')+'</table><p><b>Balance due: '+R(s.bal)+'</b>'+(s.arr>.005?' (in arrears: '+R(s.arr)+')':'')+'</p>'+(s.nx&&s.bal>.005?'<p>Next payment: '+R(s.nx[1])+' due '+s.nx[0]+'</p>':'')+(s.sch.length?'<h2>Instalment schedule</h2><table><tr><th>Due</th><th class="r">Instalment</th><th>Status</th></tr>'+s.sch.map(x=>'<tr><td>'+x[0]+'</td><td class="r">'+R(x[1])+'</td><td>'+x[2]+'</td></tr>').join('')+'</table>':'')}
+function stmRun(){const ls=L.filter(l=>bal(l)>.005).sort((a,b)=>a.id<b.id?-1:1);if(!ls.length){say('No open loans to print.');return}dl('statements-'+fd(new Date())+'.html',page('Statements '+fd(new Date()),ls.map(l=>'<section style="page-break-after:always">'+stmBody(l)+'</section>').join('')))}
+async function pack(o){let b=new TextEncoder().encode(JSON.stringify(o)),z='p';try{if(window.CompressionStream){b=new Uint8Array(await new Response(new Blob([b]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer());z='z'}}catch(e){}let s='';b.forEach(x=>{s+=String.fromCharCode(x)});return z+btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
+async function clientStm(id){if(!P.pay)return;const l=L.find(x=>x.id===id);if(!l)return;say('Preparing the message...');const code=await pack(stmData(l)),msg='Hi '+l.name+', here is your statement for loan '+l.id+' from Rolva Finance Technologies.\n1. Open '+VIEWER+'\n2. Paste this code:\nSTM1:'+code;cst.value=msg;csa.href=waq(l,msg);csw.hidden=false;say('Message ready below.');csw.scrollIntoView({behavior:'smooth'})}
+function affTxt(l){const a=(l.aff||[]).slice(-1)[0];return a?'Affordability: '+(a.ok?'affordable':'not affordable')+' ('+a.d+')':'Affordability not assessed'}
+function monthlyRepay(l){if(l.sch)return owed(l)/l.sch.n*({w:52/12,f:26/12,m:1}[l.sch.s]);return owed(l)/Math.max(1,(l.d0||l.days)/30.4375)}
+function affHtml(l){const a=(l.aff||[]).slice(-1)[0];let h='<details data-o="'+l.id+'a"'+(OPEN.has(l.id+'a')?' open':'')+'><summary class="tag">'+affTxt(l)+'</summary>';
+if(a){h+='<div class="tag">Assessed '+a.d+': net income '+R(a.net)+', expenses '+R(a.rent+a.food+a.transport+a.debts+a.other)+', disposable '+R(a.disp)+'; repayment '+R(a.rp)+'/month'+(a.ratio!=null?' ('+Math.round(a.ratio*100)+'% of disposable)':'')+'. Outcome: '+(a.ok?'affordable':'not affordable')+(a.iv?'; income verified':'')+(a.cb?'; credit bureau checked':'')+'.'+(a.note?' Note: '+esc(a.note):'')+'</div>';if(a.ratio==null||a.ratio>1)h+='<div class="tag" style="color:var(--rd)">Repayment is not covered by disposable income.</div>';if(l.aff.length>1)h+='<div class="tag">'+l.aff.length+' assessments on file.</div>'}
+else h+='<div class="tag">No affordability assessment recorded.</div>';
+if(P.add)h+='<div class="ac" style="margin-top:6px"><input name="net" type="number" min="0" step="0.01" placeholder="Net income / month" value="'+(l.inc||'')+'"><input name="rent" type="number" min="0" step="0.01" placeholder="Rent or bond"><input name="food" type="number" min="0" step="0.01" placeholder="Food"><input name="transport" type="number" min="0" step="0.01" placeholder="Transport"><input name="debts" type="number" min="0" step="0.01" placeholder="Other debt repayments"><input name="other" type="number" min="0" step="0.01" placeholder="Other expenses"><select name="dec"><option>Affordable</option><option>Not affordable</option></select><label class="c"><input type="checkbox" name="iv" style="width:auto">Income verified</label><label class="c"><input type="checkbox" name="cb" style="width:auto">Credit bureau checked</label><input name="note" placeholder="Note" style="width:200px"><button class="g" data-af="'+l.id+'">Record assessment</button></div>';
+return h+'</details>'}
+function findLoans(q){q=q.trim().toLowerCase();if(!q)return[];const nz=s=>{s=s.replace(/\D/g,'');if(s.startsWith('27'))s=s.slice(2);return s.replace(/^0/,'')},m=q.match(/rf-?(\d{4})/);if(m)return L.filter(l=>l.id==='RF-'+m[1]);const d=nz(q);if(d.length>=6)return L.filter(l=>nz(l.phone).includes(d));return L.filter(l=>l.name.toLowerCase().includes(q))}
+function enquiry(){if(!P.pay)return;let ls=findLoans(enq.value);const open=ls.filter(l=>bal(l)>.005);if(open.length)ls=open;
+if(!ls.length){say('No loan found for that phone, reference or name.');return}
+if(ls.length>1&&ent.value!=='Menu'){say('More than one loan matches: '+ls.map(l=>l.id+' '+l.name).join(', ')+'. Enter a loan reference.');return}
+const l=ls[0],t=ent.value,nm=l.name.split(' ')[0];if(t==='Statement link'){clientStm(l.id);return}
+let m;
+if(t==='Menu')m='Hi '+nm+', this is Rolva Finance Technologies. Reply with BALANCE for your balance, PAYMENTS for your recent payments, STATEMENT for your statement, or CALL ME and we will phone you.';
+else if(t==='Balance'){const a=arrears(l),n=alloc(l).find(x=>x.a-x.got>.005);m='Hi '+nm+', your balance on loan '+l.id+' is '+R(bal(l))+' as at '+fd(new Date())+'.'+(a>.005?' Of this, '+R(a)+' is overdue.':'')+(n&&bal(l)>.005?' Next payment: '+R(n.a-n.got)+' due '+fd(n.d)+'.':'')+' Thank you.'}
+else if(t==='Settlement quote'){const S=new Date((sdt.value||fd(new Date()))+'T00:00:00'),r=settle(l,S);m='Hi '+nm+', your settlement figure for loan '+l.id+' if paid on '+fd(S)+' is '+R(r.total)+'. It excludes interest'+(r.drop>.005?' and service fees':'')+' not yet earned and is valid for payment on that date only. Thank you.'}
+else if(t==='Next payment'){const n=alloc(l).find(x=>x.a-x.got>.005);m=n?'Hi '+nm+', your next payment on loan '+l.id+' is '+R(n.a-n.got)+' due '+fd(n.d)+'. Thank you.':'Hi '+nm+', loan '+l.id+' is fully paid. Thank you.'}
+else{const p=l.pay.slice().sort((a,b)=>a.d<b.d?1:-1).slice(0,5);m='Hi '+nm+', your recent payments on loan '+l.id+': '+(p.length?p.map(x=>x.d+' '+R(x.a)).join('; '):'none yet')+'. Balance: '+R(bal(l))+'.'}
+cst.value=m;csa.href=waq(l,m);csw.hidden=false;say('Reply ready below.')}
+function irr(P0,a,n){if(a*n<=P0)return 0;let lo=0,hi=5;for(let i=0;i<80;i++){const r=(lo+hi)/2;let pv=0;for(let k=1;k<=n;k++)pv+=a/Math.pow(1+r,k);if(pv>P0)lo=r;else hi=r}return(lo+hi)/2}
+function quote(){const v=Object.fromEntries(new FormData(f));if(!(+v.principal>0)||v.rate===''||!v.start){say('Enter the client, principal, rate and start date first.');return}
+const l={principal:+v.principal,rate:+v.rate,days:+v.days||30,start:v.start,fee:+v.fee||0,pay:[],...mk(v)},sc=sched(l),am=amort(l),T=tot(l),I=T-l.principal;
+const T2=T+fixed(l);let nom,eff;if(l.sch){const a=T2/l.sch.n,ppy={w:52,f:26,m:12}[l.sch.s],r=irr(l.principal,a,l.sch.n);nom=r*ppy;eff=Math.pow(1+r,ppy)-1}else{nom=(T2/l.principal-1)*365/l.days;eff=Math.pow(T2/l.principal,365/l.days)-1}
+const vu=new Date();vu.setDate(vu.getDate()+7);const pc=x=>(x*100).toFixed(2)+'%';
+const rows=sc.map((x,i)=>{const it=am[i]?am[i].int:I/sc.length,pr=am[i]?am[i].pr:l.principal/sc.length;return '<tr><td>'+(i+1)+'</td><td>'+fd(x.d)+'</td><td class="r">'+R(x.a)+'</td><td class="r">'+R(it)+'</td><td class="r">'+R(pr)+'</td><td class="r">'+R(x.a-it-pr)+'</td></tr>'}).join('');
+dl('quote-'+String(v.name||'client').replace(/[^\w]+/g,'-')+'-'+fd(new Date())+'.html',page('Quotation','<h1>Pre-agreement statement and quotation</h1><p>'+co+' (the Lender)<br>Prepared for: '+esc(v.name||'')+(v.idno?', ID '+esc(v.idno):'')+(v.addr?'<br>'+esc(v.addr):'')+'<br>Date: '+fd(new Date())+'. Valid until '+fd(vu)+'.</p>'
++'<h2>Cost of credit</h2><table><tr><td>Principal debt (amount advanced)</td><td class="r">'+R(l.principal)+'</td></tr><tr><td>Initiation fee</td><td class="r">'+R(l.fi||0)+'</td></tr><tr><td>Service fees ('+(l.sm?l.sm+' months at '+R(l.fs/l.sm):'none')+')</td><td class="r">'+R(l.fs||0)+'</td></tr><tr><td>Credit life insurance</td><td class="r">R0.00</td></tr><tr><td>Interest ('+(l.sch&&l.sch.r!=null?l.rate+'% per month on the reducing balance':l.rate+'% of the principal debt')+')</td><td class="r">'+R(I)+'</td></tr><tr><td><b>Total cost of credit</b></td><td class="r"><b>'+R(I+fixed(l))+'</b></td></tr><tr><td><b>Total amount repayable</b></td><td class="r"><b>'+R(T2)+'</b></td></tr></table>'
++'<h2>Repayment</h2><table><tr><th>#</th><th>Due</th><th class="r">Payment</th><th class="r">Interest</th><th class="r">Capital</th><th class="r">Fees</th></tr>'+rows+'</table>'
++'<h2>Annual rate</h2><p>Nominal annual rate: '+pc(nom)+'. Effective annual rate: '+pc(eff)+'.</p>'
++'<h2>Other charges</h2><p>'+(l.fee>0?'A late fee of '+R(l.fee)+' applies to each missed payment.':'No late fee applies.')+' Interest, fees and charges together will never exceed the principal debt (in duplum rule). You may settle this agreement early; ask us for a settlement quotation.</p>'
++'<p class="n">Draft. Have a compliance adviser confirm this meets the National Credit Act pre-agreement statement and quotation requirements before issuing it.</p>'))}
+function dlBackup(){dl('rolva-backup-'+fd(new Date())+'.json',JSON.stringify({app:'rolva-loans',v:1,at:new Date().toISOString(),loans:L,apps:APPS,lock:LOCK},null,1))}
+let RS=null;
+rsf.onchange=async()=>{if(!P.waive)return;const f0=rsf.files[0];if(!f0)return;try{const o=JSON.parse(await f0.text());if(o.app!=='rolva-loans'||o.v!==1||!Array.isArray(o.loans))throw 0;RS=o;rst.textContent='Backup from '+String(o.at||'').slice(0,10)+': '+o.loans.length+' loans, '+(o.apps||[]).length+' applications. Matching loan references will be overwritten. Nothing is deleted.';rsgo.hidden=false}catch(e){RS=null;rsgo.hidden=true;rst.textContent='That file is not a Rolva backup.'}};
+function doRestore(){if(!P.waive||!RS||!DB)return;const ok=l=>l&&typeof l.id==='string'&&/^RF-\d+$/.test(l.id)&&typeof l.name==='string'&&isFinite(l.principal)&&Array.isArray(l.pay);
+let n=0,sk=0,na2=0;RS.loans.filter(ok).forEach(b=>{const i=L.findIndex(x=>x.id===b.id);if(i>=0?frozen(L[i]):frozen(b)){sk++;return}if(i>=0)L[i]=b;else L.push(b);n++});
+(RS.apps||[]).filter(a=>a&&typeof a.id==='string'&&/^AP-\d+$/.test(a.id)&&typeof a.name==='string').forEach(a=>{const i=APPS.findIndex(x=>x.id===a.id);if(i>=0)APPS[i]=a;else APPS.push(a);DB.collection('apps').doc(a.id).set(a).catch(()=>{});na2++});
+save();DB.collection('audit').add({t:new Date().toISOString(),by:UID||'',ref:'BOOKS',e:'Restored backup from '+String(RS.at||'').slice(0,10)+' ('+n+' loans, '+sk+' skipped in closed months)'}).catch(()=>{});
+RS=null;rsf.value='';rsgo.hidden=true;rsgo.textContent='Restore';rst.textContent='';say('Restored '+n+' loans and '+na2+' applications; skipped '+sk+' in closed months.');draw()}
+function settle(l,S){const sc=sched(l),n=sc.length;let rebate=0,drop=0;
+if(l.sch){const r=l.sch.r!=null?l.sch.r:irr(l.principal,tot(l)/n,n),bd=[new Date(l.start+'T00:00:00'),...sc.map(x=>x.d)],j=sc.findIndex(x=>x.d>S),fr=j>=0?Math.min(1,Math.max(0,(bd[j+1]-S)/(bd[j+1]-bd[j]))):0;let fut=0,pv=0;
+comps(l).forEach(c=>{if(c.t==='fee'){if(c.k==='svc'&&!(c.ps<=S))drop+=c.a;return}if(j>=0&&c.i>=j){fut+=c.a;pv+=c.a/Math.pow(1+r,(c.i-j)+fr)}});rebate=Math.max(0,fut-pv)}
+else{const due=sc[0].d,dl=Math.min((due-S)/864e5,l.days);if(dl>0&&l.rate>0){const rd=Math.pow(1+l.rate/100,1/Math.max(1,l.days))-1,ib=(l.roll||[]).length?l.roll[l.roll.length-1].add/(l.rate/100):l.principal;rebate=ib*(1+l.rate/100)*(1-Math.pow(1+rd,-dl))}
+if(l.fs){const sm=l.sm||1,m=Math.min(sm,Math.max(1,Math.ceil((S-new Date((l.s0||l.start)+'T00:00:00'))/(864e5*30.4375))));drop=l.fs-l.fs/sm*m}}
+const all=bal(l);return{all,rebate,drop,total:Math.max(0,all-rebate-drop)}}
+function dlSettle(id){const l=L.find(x=>x.id===id);if(!l)return;const S=new Date((sdt.value||fd(new Date()))+'T00:00:00'),r=settle(l,S);
+dl('settlement-'+id+'-'+fd(S)+'.html',page('Settlement quotation '+id,'<h1>Settlement quotation '+id+'</h1><p>'+co+'<br>Client: '+esc(l.name)+'<br>Settlement date: '+fd(S)+'<br>Quotation date: '+fd(new Date())+'</p><table><tr><td>Balance owing on the agreement</td><td class="r">'+R(r.all)+'</td></tr><tr><td>Less: interest not yet earned</td><td class="r">-'+R(r.rebate)+'</td></tr><tr><td>Less: service fees not yet earned</td><td class="r">-'+R(r.drop)+'</td></tr><tr><td><b>Settlement amount</b></td><td class="r"><b>'+R(r.total)+'</b></td></tr></table><p>You may settle this agreement at any time. The settlement amount is the unpaid principal debt plus the unpaid interest, fees and charges payable up to the settlement date. Interest that has not yet accrued is not charged. No early termination charge is included. This figure is valid for payment on the settlement date only; ask for a new quotation for another date.</p><p class="n">Draft. Have a compliance adviser confirm the method before issuing settlement quotations.</p>'))}
+sdt.value=fd(new Date());
+function setRole(r){const e=r==='owner'||r==='editor';P={pay:r!=='viewer',add:e,roll:e,docs:e,exp:e,del:r==='owner',waive:r==='owner'};rl.textContent={owner:'Owner',editor:'Editor',collector:'Contributor (payments only)',viewer:'Read-only'}[r]}
+function importOld(){const n=OLD.length;let mx=L.reduce((m,l)=>Math.max(m,+l.id.slice(3)),0);OLD.forEach(l=>{if(L.some(x=>x.id===l.id))l.id='RF-'+String(++mx).padStart(4,'0');L.push(l)});save();try{localStorage.removeItem(K)}catch(e){}OLD=[];imp.hidden=true;say('Imported '+n+' loans.');draw()}
+document.addEventListener('change',async e=>{const i=e.target,fl=i.dataset&&i.dataset.up&&i.files[0];if(!fl||!AS)return;const l=L.find(x=>x.id===i.dataset.up);if(!l)return;say('Uploading '+fl.name+'...');try{const r=await AS.upload(fl);l.docs=l.docs||[];l.docs.push({id:r.id,name:fl.name});save();draw();say('Attached '+fl.name)}catch(err){say('Upload failed'+(err&&err.code?': '+err.code:''))}i.value=''});
+async function init(){const c=window.claude;if(!c){say('Open this page from claude.ai to save loans.');return}
+try{DB=await c.use('db');AS=await c.use('assets')}catch(e){}
+try{const u=await c.use('user');if(u){USER=u;UID=await u.id();const o=await u.isOwner(),ed=await u.canEdit(),w=await u.can('data.write');setRole(o?'owner':ed?'editor':w===false?'viewer':'collector')}}catch(e){}
+if(!DB){say('Sign in to claude.ai to save loans. Changes are not being saved.');draw();return}
+imp.hidden=!OLD.length||!P.add;
+DB.collection('loans').onSnapshot(s=>{L=s.docs.map(d=>JSON.parse(JSON.stringify(d.data())));snap={};L.forEach(l=>{snap[l.id]=JSON.stringify(l)});draw()},()=>say('Lost connection to the loan book. Reload the page.'));if(P.exp)DB.collection('audit').orderBy('t','desc').limit(200).onSnapshot(s=>{AU=s.docs.map(d=>d.data());drawAu()},()=>{});
+DB.doc('lock/state').onSnapshot(s=>{LOCK=s.exists?(s.data().through||''):'';draw()},()=>{});DB.collection('apps').onSnapshot(s=>{APPS=s.docs.map(d=>JSON.parse(JSON.stringify(d.data())));drawApps()},()=>{});
+draw()}
+init();
+</script></body></html>
